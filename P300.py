@@ -97,17 +97,32 @@ from matplotlib import pyplot as plt
 # to be explicit in case if the user has changed the default ordering
 K.set_image_data_format('channels_last')
 
-processed_file_name = 'Or_1304'
-current_path = pathlib.Path().absolute()  
-data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed.fif')
-epochs = mne.read_epochs(data_fname)
-epochs = epochs[['Standard Trial','Target Trial']] 
-labels = epochs.events[:, 2]  # target: auditory left vs visual left
+# Set parameters and read data
+raw_fname = '/Users/ordez/Documents/arl-eegmodels/arl-eegmodels/Data/Processed Data/sample_audvis_filt-0-40_raw.fif'
+event_fname = '/Users/ordez/Documents/arl-eegmodels/arl-eegmodels/Data/Processed Data/sample_audvis_filt-0-40_raw-eve.fif'
+tmin, tmax = -0., 1
+event_id = dict(aud_l=1, vis_l=3)
 
+# Setup for reading the raw data
+raw = io.Raw(raw_fname, preload=True, verbose=False)
+raw.filter(2, None, method='iir')  # replace baselining with high-pass
+events = mne.read_events(event_fname)
+
+raw.info['bads'] = ['MEG 2443']  # set bad channels
+picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
+                       exclude='bads')
+
+# Read epochs
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False,
+                    picks=picks, baseline=None, preload=True, verbose=False)
+labels = epochs.events[:, -1]
 
 # extract raw data. scale by 1000 due to scaling sensitivity in deep learning
 X = epochs.get_data()*1000 # format is in (trials, channels, samples)
 y = labels
+
+y[y==1] = 0 #aud_l
+y[y==3] = 1 #vis_l
 
 kernels, chans, samples = 1, X.shape[1], X.shape[2]
 
@@ -242,3 +257,4 @@ ConfusionMatrixDisplay(confusion_matrix(Y_test.argmax(axis = -1),preds_rg)).plot
 axs[0].set_title('EEGNet')
 axs[1].set_title('xDAWN + RG')
 plt.tight_layout()
+plt.show()
