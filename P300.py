@@ -111,9 +111,9 @@ y = labels
 
 kernels, chans, samples = 1, X.shape[1], X.shape[2]
 
-train_ratio = 0.60
+train_ratio = 0.50
 validation_ratio = 0.25
-test_ratio = 0.15
+test_ratio = 0.25
 
 # train is now 50% of the entire data set
 X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=1 - train_ratio)
@@ -145,7 +145,7 @@ print(X_test.shape[0], 'test samples')
 # configure the EEGNet-8,2,16 model with kernel length of 32 samples (other 
 # model configurations may do better, but this is a good starting point)
 model = EEGNet(nb_classes = 2, Chans = chans, Samples = samples, 
-               dropoutRate = 0.5, kernLength = 32, F1 = 8, D = 2, F2 = 16, 
+               dropoutRate = 0.5, kernLength = 70, F1 = 8, D = 2, F2 = 16, 
                dropoutType = 'Dropout')
 
 # compile the model and set the optimizers
