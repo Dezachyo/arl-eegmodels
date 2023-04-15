@@ -63,8 +63,11 @@
  the file labeled LICENSE.TXT that is a part of this project's official 
  distribution. 
 """
+
+
 import pathlib
 import numpy as np
+from matplotlib import pyplot as plt
 
 # mne imports
 import mne
@@ -83,6 +86,9 @@ from pyriemann.tangentspace import TangentSpace
 from pyriemann.utils.viz import plot_confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 
 # tools for plotting confusion matrices
 from matplotlib import pyplot as plt
@@ -91,10 +97,11 @@ from matplotlib import pyplot as plt
 # to be explicit in case if the user has changed the default ordering
 K.set_image_data_format('channels_last')
 
-processed_file_name = 'Omri_Recording_001'
+processed_file_name = 'Or_1304'
 current_path = pathlib.Path().absolute()  
-data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed')
+data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed.fif')
 epochs = mne.read_epochs(data_fname)
+epochs = epochs[['Standard Trial','Target Trial']] 
 labels = epochs.events[:, 2]  # target: auditory left vs visual left
 
 
@@ -104,20 +111,26 @@ y = labels
 
 kernels, chans, samples = 1, X.shape[1], X.shape[2]
 
-# take 50/25/25 percent of the data to train/validate/test
-X_train      = X[0:160,]
-Y_train      = y[0:160]
-X_validate   = X[144:230,]
-Y_validate   = y[144:230]
-X_test       = X[230:,]
-Y_test       = y[230:]
+train_ratio = 0.60
+validation_ratio = 0.25
+test_ratio = 0.15
+
+# train is now 50% of the entire data set
+X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=1 - train_ratio)
+
+# test is now 25% of the initial data set
+# validation is now 25% of the initial data set
+X_validate, X_test, Y_validate, Y_test = train_test_split(X_test, Y_test, test_size=test_ratio/(test_ratio + validation_ratio)) 
+
+print(X_train.shape, X_validate.shape, X_test.shape)
+
 
 ############################# EEGNet portion ##################################
 
 # convert labels to one-hot encodings.
-Y_train      = np_utils.to_categorical(Y_train-1)
-Y_validate   = np_utils.to_categorical(Y_validate-1)
-Y_test       = np_utils.to_categorical(Y_test-1)
+Y_train      = np_utils.to_categorical(Y_train-Y_test.min())
+Y_validate   = np_utils.to_categorical(Y_validate-Y_test.min())
+Y_test       = np_utils.to_categorical(Y_test-Y_test.min())
 
 # convert data to NHWC (trials, channels, samples, kernels) format. Data 
 # contains 60 channels and 151 time-points. Set the number of kernels to 1.
@@ -198,7 +211,7 @@ n_components = 2  # pick some components
 # set up sklearn pipeline
 clf = make_pipeline(XdawnCovariances(n_components),
                     TangentSpace(metric='riemann'),
-                    LogisticRegression())
+                    LogisticRegression(class_weight=class_weights))
 
 preds_rg     = np.zeros(len(Y_test))
 
@@ -218,10 +231,14 @@ print("Classification accuracy: %f " % (acc2))
 # plot the confusion matrices for both classifiers
 names        = ['non-target', 'target']
 plt.figure(0)
-plot_confusion_matrix(preds, Y_test.argmax(axis = -1), names, title = 'EEGNet-8,2')
+plot_confusion_matrix(Y_test.argmax(axis = -1),preds, names, title = 'EEGNet-8,2')
 
 plt.figure(1)
-plot_confusion_matrix(preds_rg, Y_test.argmax(axis = -1), names, title = 'xDAWN + RG')
+plot_confusion_matrix(Y_test.argmax(axis = -1),preds_rg,names, title = 'xDAWN + RG')
 
-
-
+fig,axs = plt.subplots(2)
+ConfusionMatrixDisplay(confusion_matrix(Y_test.argmax(axis = -1),preds)).plot(ax= axs[0])
+ConfusionMatrixDisplay(confusion_matrix(Y_test.argmax(axis = -1),preds_rg)).plot(ax=axs[1])
+axs[0].set_title('EEGNet')
+axs[1].set_title('xDAWN + RG')
+plt.tight_layout()
