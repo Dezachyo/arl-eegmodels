@@ -160,7 +160,7 @@ print(X_test.shape[0], 'test samples')
 # configure the EEGNet-8,2,16 model with kernel length of 32 samples (other 
 # model configurations may do better, but this is a good starting point)
 model = EEGNet(nb_classes = 2, Chans = chans, Samples = samples, 
-               dropoutRate = 0.5, kernLength = 32, F1 = 8, D = 2, F2 = 16, 
+               dropoutRate = 0.5, kernLength = 75, F1 = 8, D = 2, F2 = 16, 
                dropoutType = 'Dropout')
 
 # compile the model and set the optimizers
@@ -183,7 +183,7 @@ checkpointer = ModelCheckpoint(filepath='/tmp/checkpoint.h5', verbose=1,
 
 # the syntax is {class_1:weight_1, class_2:weight_2,...}. Here just setting
 # the weights all to be 1
-class_weights = {0:1, 1:5}
+class_weights = {0:1, 1:1}
 
 ################################################################################
 # fit the model. Due to very small sample sizes this can get
