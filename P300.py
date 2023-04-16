@@ -101,12 +101,28 @@ processed_file_name = 'Or_1304'
 current_path = pathlib.Path().absolute()  
 data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed.fif')
 epochs = mne.read_epochs(data_fname)
-epochs = epochs[['Standard Trial','Target Trial']] 
-labels = epochs.events[:, 2]  # target: auditory left vs visual left
 
+# Balance between the calsses by randomly selecting non_target epochs 
+n_non_target = 100
+i_rand = np.random.randint(0,500,n_non_target)
+non_target_random_epochs = epochs['Standard Trial'][i_rand] 
+target_random_epochs = epochs['Target Trial']
+ 
+X_non = non_target_random_epochs.get_data()
+X_target = target_random_epochs.get_data()
+
+X = np.concatenate([X_non,X_target])
+
+
+#epochs = mne.concatenate_epochs([epochs['Standard Trial'][i_rand] , epochs['Target Trial']])
+#labels = epochs.events[:, 2]  # target: auditory left vs visual left
+
+labels_non = non_target_random_epochs.events[:, 2]
+labels_targer = target_random_epochs.events[:, 2]
+labels = np.concatenate([labels_non,labels_targer])
 
 # extract raw data. scale by 1000 due to scaling sensitivity in deep learning
-X = epochs.get_data()*1000 # format is in (trials, channels, samples)
+X = X*1000 # format is in (trials, channels, samples)
 y = labels
 
 kernels, chans, samples = 1, X.shape[1], X.shape[2]
@@ -168,7 +184,7 @@ checkpointer = ModelCheckpoint(filepath='/tmp/checkpoint.h5', verbose=1,
 
 # the syntax is {class_1:weight_1, class_2:weight_2,...}. Here just setting
 # the weights all to be 1
-class_weights = {0:1, 1:5}
+class_weights = {0:1, 1:1}
 
 ################################################################################
 # fit the model. Due to very small sample sizes this can get
@@ -242,3 +258,4 @@ ConfusionMatrixDisplay(confusion_matrix(Y_test.argmax(axis = -1),preds_rg)).plot
 axs[0].set_title('EEGNet')
 axs[1].set_title('xDAWN + RG')
 plt.tight_layout()
+plt.show()
