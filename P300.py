@@ -97,17 +97,21 @@ from matplotlib import pyplot as plt
 # to be explicit in case if the user has changed the default ordering
 K.set_image_data_format('channels_last')
 
-processed_file_name = 'Or_1304'
+processed_file_name = 'Neta2HandsAO.fif'
 current_path = pathlib.Path().absolute()  
-data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed.fif')
+data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name )
 epochs = mne.read_epochs(data_fname)
-epochs = epochs[['Standard Trial','Target Trial']] 
+
 labels = epochs.events[:, 2]  # target: auditory left vs visual left
 
 
 # extract raw data. scale by 1000 due to scaling sensitivity in deep learning
 X = epochs.get_data()*1000 # format is in (trials, channels, samples)
 y = labels
+
+
+y[y==6] = 1
+y[y==3] = 0
 
 kernels, chans, samples = 1, X.shape[1], X.shape[2]
 
@@ -128,9 +132,9 @@ print(X_train.shape, X_validate.shape, X_test.shape)
 ############################# EEGNet portion ##################################
 
 # convert labels to one-hot encodings.
-Y_train      = np_utils.to_categorical(Y_train-Y_test.min())
-Y_validate   = np_utils.to_categorical(Y_validate-Y_test.min())
-Y_test       = np_utils.to_categorical(Y_test-Y_test.min())
+Y_train      = np_utils.to_categorical(Y_train)
+Y_validate   = np_utils.to_categorical(Y_validate)
+Y_test       = np_utils.to_categorical(Y_test)
 
 # convert data to NHWC (trials, channels, samples, kernels) format. Data 
 # contains 60 channels and 151 time-points. Set the number of kernels to 1.
