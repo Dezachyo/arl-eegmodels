@@ -97,9 +97,9 @@ from matplotlib import pyplot as plt
 # to be explicit in case if the user has changed the default ordering
 K.set_image_data_format('channels_last')
 
-processed_file_name = 'Or_1304'
+processed_file_name = 'Roei_P300_1_24_05'
 current_path = pathlib.Path().absolute()  
-data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed.fif')
+data_fname = current_path /'Data'/'Processed Data'/ (processed_file_name + '_Processed2')
 epochs = mne.read_epochs(data_fname)
 epochs = epochs[['Standard Trial','Target Trial']] 
 labels = epochs.events[:, 2]  # target: auditory left vs visual left
@@ -175,7 +175,7 @@ class_weights = {0:1, 1:5}
 # pretty noisy run-to-run, but most runs should be comparable to xDAWN + 
 # Riemannian geometry classification (below)
 ################################################################################
-fittedModel = model.fit(X_train, Y_train, batch_size = 16, epochs = 300, 
+fittedModel = model.fit(X_train, Y_train, batch_size = 16, epochs = 200, 
                         verbose = 2, validation_data=(X_validate, Y_validate),
                         callbacks=[checkpointer], class_weight = class_weights)
 
